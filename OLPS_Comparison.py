@@ -47,7 +47,7 @@
 #Initialize and set debugging level to `debug` to track progress.
 
 
-# In[1]:
+# In[4]:
 
 
 get_ipython().magic('matplotlib inline')
@@ -57,8 +57,8 @@ import pandas as pd
 from pandas_datareader import data as pdr
 # data reader now seperated to new package. pip install pandas-datareader
 #from pandas.io.data import DataReader
-import fix_yahoo_finance as yf
-yf.pdr_override() # <== that's all it takes :-)
+import fix_yahoo_finance
+fix_yahoo_finance.pdr_override() # <== that's all it takes :-)
 from datetime import datetime
 import six
 import universal as up
@@ -76,7 +76,7 @@ mpl.rcParams['lines.linewidth'] = 1
 default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
 
 
-# In[2]:
+# In[5]:
 
 
 # note what versions we are on:
@@ -92,13 +92,13 @@ print('Numpy: '+np.__version__)
 
 # We want to train on market data from 2005-2012 inclusive (8 years), and test on 2013-2014 inclusive (2 years). But at this point we accept the default parameters for the respective algorithms and we essentially are looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[3]:
+# In[6]:
 
 
 # load data from Yahoo
 # Be careful if you cange the order or types of ETFs to also change the CRP weight %'s in the swensen_allocation
-#etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
-etfs = ['TLT','VNQ']
+etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
+#etfs = ['TLT','VNQ']
 # Swensen allocation from http://www.bogleheads.org/wiki/Lazy_portfolios#David_Swensen.27s_lazy_portfolio
 # as later updated here : https://www.yalealumnimagazine.com/articles/2398/david-swensen-s-guide-to-sleeping-soundly 
 swensen_allocation = [0.3, 0.15, 0.1, 0.15, 0.15, 0.15]  
@@ -117,7 +117,7 @@ train_b = pdr.get_data_yahoo(benchmark, train_start, train_end)['Adj Close']
 test_b  = pdr.get_data_yahoo(benchmark, test_start, test_end)['Adj Close']
 
 
-# In[4]:
+# In[24]:
 
 
 # plot normalized prices of the train set
@@ -125,7 +125,7 @@ ax1 = (train / train.iloc[0,:]).plot()
 (train_b / train_b.iloc[0,:]).plot(ax=ax1)
 
 
-# In[5]:
+# In[25]:
 
 
 # plot normalized prices of the test set
@@ -137,29 +137,29 @@ ax2 = (test / test.iloc[0,:]).plot()
 
 # We want to train on market data from a number of years, and test out of sample for a duration smaller than the train set. To get started we accept the default parameters for the respective algorithms and we essentially are just looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[6]:
+# In[17]:
 
 
 #list all the algos
 olps_algos = [
-#algos.Anticor(),
-#algos.BAH(),
-#algos.BCRP(),
-#algos.BNN(),
-#algos.CORN(),
-#algos.CRP(b=swensen_allocation), # Non Uniform CRP (the Swensen allocation)
-#algos.CWMR(),
-#algos.EG(),
-#algos.Kelly(),
-#algos.OLMAR(),
-#algos.ONS(),
-#algos.PAMR(),
-algos.RMR(),
+algos.Anticor(),
+algos.BAH(),
+algos.BCRP(),
+algos.BNN(),
+algos.CORN(),
+algos.CRP(b=swensen_allocation), # Non Uniform CRP (the Swensen allocation)
+algos.CWMR(),
+algos.EG(),
+algos.Kelly(),
+algos.OLMAR(),
+algos.ONS(),
+algos.PAMR(),
+algos.RMR()
 #algos.UP()
 ]
 
 
-# In[7]:
+# In[18]:
 
 
 # put all the algos in a dataframe
@@ -172,15 +172,15 @@ olps_train.algo = olps_algos
 
 # At this point we could train all the algos to find the best parameters for each.
 
-# In[8]:
+# In[19]:
 
 
 # run all algos - this takes more than a minute
 for name, alg in zip(olps_train.index, olps_train.algo):
-    olps_train.ix[name,'results'] = alg.run(train)
+    olps_train.loc[name,'results'] = alg.run(train)
 
 
-# In[9]:
+# In[20]:
 
 
 # Let's make sure the fees are set to 0 at first
@@ -188,7 +188,7 @@ for k, r in olps_train.results.iteritems():
     r.fee = 0.0
 
 
-# In[10]:
+# In[70]:
 
 
 # we need 14 colors for the plot
@@ -197,7 +197,7 @@ color_idx = np.linspace(0, 1, n_lines)
 mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
 
 
-# In[11]:
+# In[73]:
 
 
 # plot as if we had no fees
@@ -209,7 +209,7 @@ for k, r in olps_train.results.iteritems():
     r.plot(assets=False, weights=False, ucrp=False, portfolio_label=k, ax=ax[0])
 
 
-# In[12]:
+# In[74]:
 
 
 def olps_stats(df):
@@ -223,14 +223,14 @@ def olps_stats(df):
     return df
 
 
-# In[15]:
+# In[75]:
 
 
 olps_stats(olps_train)
 olps_train[metrics].sort_values('profit', ascending=False)
 
 
-# In[16]:
+# In[76]:
 
 
 # Let's add fees of 0.1% per transaction (we pay $1 for every $1000 of stocks bought or sold).
@@ -238,11 +238,13 @@ for k, r in olps_train.results.iteritems():
     r.fee = 0.001
 
 
-# In[17]:
+# In[77]:
 
 
 # plot with fees
 # get the first result so we can grab the figure axes from the plot
+import plotly.plotly as py
+import plotly.graph_objs as go
 ax = olps_train.results[0].plot(assets=False, weights=False, ucrp=True, portfolio_label=olps_train.index[0])
 for k, r in olps_train.results.iteritems():
     if k == olps_train.results.keys()[0]: # skip the first item because we have it already
@@ -252,16 +254,16 @@ for k, r in olps_train.results.iteritems():
 
 # ### Notice how Kelly crashes right away and how RMR and OLMAR float to the top after some high volatility.  
 
-# In[ ]:
+# In[79]:
 
 
 olps_stats(olps_train)
-olps_train[metrics].sort('profit', ascending=False)
+olps_train[metrics].sort_values('profit', ascending=False)
 
 
 # # Run on the Test Set
 
-# In[ ]:
+# In[80]:
 
 
 # create the test set dataframe
@@ -269,7 +271,7 @@ olps_test  = pd.DataFrame(index=algo_names, columns=algo_data)
 olps_test.algo  = olps_algos
 
 
-# In[ ]:
+# In[81]:
 
 
 # run all algos
@@ -277,7 +279,7 @@ for name, alg in zip(olps_test.index, olps_test.algo):
     olps_test.ix[name,'results'] = alg.run(test)
 
 
-# In[ ]:
+# In[82]:
 
 
 # Let's make sure the fees are 0 at first
@@ -285,7 +287,7 @@ for k, r in olps_test.results.iteritems():
     r.fee = 0.0
 
 
-# In[ ]:
+# In[83]:
 
 
 # plot as if we had no fees
@@ -299,7 +301,7 @@ for k, r in olps_test.results.iteritems():
 
 # ### Kelly went wild and crashed, so let's remove it from the mix
 
-# In[ ]:
+# In[84]:
 
 
 # plot as if we had no fees
