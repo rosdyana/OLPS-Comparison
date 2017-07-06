@@ -666,7 +666,7 @@ for k, r in olps_df.results.iteritems():
 # In[ ]:
 
 olps_stats(olps_sectors_train)
-olps_sectors_train[metrics].sort('profit', ascending=False)
+olps_sectors_train[metrics].sort_values('profit', ascending=False)
 
 
 # In[ ]:
@@ -710,7 +710,7 @@ for k, r in olps_df.results.iteritems():
 # In[ ]:
 
 olps_stats(olps_sectors_test)
-olps_sectors_test[metrics].sort('profit', ascending=False)
+olps_sectors_test[metrics].sort_values('profit', ascending=False)
 
 
 # # Further work
