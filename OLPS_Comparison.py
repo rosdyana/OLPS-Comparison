@@ -44,7 +44,7 @@
 # In[ ]:
 
 
-Initialize and set debugging level to `debug` to track progress.
+#Initialize and set debugging level to `debug` to track progress.
 
 
 # In[1]:
@@ -54,9 +54,11 @@ get_ipython().magic('matplotlib inline')
 
 import numpy as np
 import pandas as pd
-import pandas_datareader as pdr
+from pandas_datareader import data as pdr
 # data reader now seperated to new package. pip install pandas-datareader
 #from pandas.io.data import DataReader
+import fix_yahoo_finance as yf
+yf.pdr_override() # <== that's all it takes :-)
 from datetime import datetime
 import six
 import universal as up
@@ -74,7 +76,7 @@ mpl.rcParams['lines.linewidth'] = 1
 default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
 
 
-# In[ ]:
+# In[2]:
 
 
 # note what versions we are on:
@@ -83,27 +85,28 @@ print('Python: '+sys.version)
 print('Pandas: '+pd.__version__)
 import pkg_resources
 print('universal-portfolios: '+pkg_resources.get_distribution("universal-portfolios").version)
-print('Pandas Datareader:'+pdr.__version__)
+print('Numpy: '+np.__version__)
 
 
 # # Loading the data
 
 # We want to train on market data from 2005-2012 inclusive (8 years), and test on 2013-2014 inclusive (2 years). But at this point we accept the default parameters for the respective algorithms and we essentially are looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[7]:
+# In[3]:
 
 
 # load data from Yahoo
 # Be careful if you cange the order or types of ETFs to also change the CRP weight %'s in the swensen_allocation
-etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
+#etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
+etfs = ['TLT','VNQ']
 # Swensen allocation from http://www.bogleheads.org/wiki/Lazy_portfolios#David_Swensen.27s_lazy_portfolio
 # as later updated here : https://www.yalealumnimagazine.com/articles/2398/david-swensen-s-guide-to-sleeping-soundly 
 swensen_allocation = [0.3, 0.15, 0.1, 0.15, 0.15, 0.15]  
 benchmark = ['SPY']
-train_start = '2005-01-01'
-train_end   = '2012-12-31'
-test_start  = '2013-01-01'
-test_end    = '2014-12-31'
+train_start = datetime(2005,1,1)#'2005-01-01'
+train_end   = datetime(2012,12,31)#'2012-12-31'
+test_start  = datetime(2013,1,1)#'2013-01-01'
+test_end    = datetime(2014,12,31)#'2014-12-31'
 #train = DataReader(etfs, 'yahoo', start=train_start, end=train_end)['Adj Close']
 #test  = DataReader(etfs, 'yahoo', start=test_start, end=test_end)['Adj Close']
 #train_b = DataReader(benchmark, 'yahoo', start=train_start, end=train_end)['Adj Close']
@@ -114,7 +117,7 @@ train_b = pdr.get_data_yahoo(benchmark, train_start, train_end)['Adj Close']
 test_b  = pdr.get_data_yahoo(benchmark, test_start, test_end)['Adj Close']
 
 
-# In[8]:
+# In[4]:
 
 
 # plot normalized prices of the train set
@@ -122,7 +125,7 @@ ax1 = (train / train.iloc[0,:]).plot()
 (train_b / train_b.iloc[0,:]).plot(ax=ax1)
 
 
-# In[9]:
+# In[5]:
 
 
 # plot normalized prices of the test set
@@ -134,29 +137,29 @@ ax2 = (test / test.iloc[0,:]).plot()
 
 # We want to train on market data from a number of years, and test out of sample for a duration smaller than the train set. To get started we accept the default parameters for the respective algorithms and we essentially are just looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[10]:
+# In[6]:
 
 
 #list all the algos
 olps_algos = [
-algos.Anticor(),
-algos.BAH(),
-algos.BCRP(),
-algos.BNN(),
-algos.CORN(),
-algos.CRP(b=swensen_allocation), # Non Uniform CRP (the Swensen allocation)
-algos.CWMR(),
-algos.EG(),
-algos.Kelly(),
-algos.OLMAR(),
-algos.ONS(),
-algos.PAMR(),
+#algos.Anticor(),
+#algos.BAH(),
+#algos.BCRP(),
+#algos.BNN(),
+#algos.CORN(),
+#algos.CRP(b=swensen_allocation), # Non Uniform CRP (the Swensen allocation)
+#algos.CWMR(),
+#algos.EG(),
+#algos.Kelly(),
+#algos.OLMAR(),
+#algos.ONS(),
+#algos.PAMR(),
 algos.RMR(),
-algos.UP()
+#algos.UP()
 ]
 
 
-# In[11]:
+# In[7]:
 
 
 # put all the algos in a dataframe
@@ -169,7 +172,7 @@ olps_train.algo = olps_algos
 
 # At this point we could train all the algos to find the best parameters for each.
 
-# In[12]:
+# In[8]:
 
 
 # run all algos - this takes more than a minute
@@ -177,7 +180,7 @@ for name, alg in zip(olps_train.index, olps_train.algo):
     olps_train.ix[name,'results'] = alg.run(train)
 
 
-# In[ ]:
+# In[9]:
 
 
 # Let's make sure the fees are set to 0 at first
@@ -185,7 +188,7 @@ for k, r in olps_train.results.iteritems():
     r.fee = 0.0
 
 
-# In[ ]:
+# In[10]:
 
 
 # we need 14 colors for the plot
@@ -194,7 +197,7 @@ color_idx = np.linspace(0, 1, n_lines)
 mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
 
 
-# In[ ]:
+# In[11]:
 
 
 # plot as if we had no fees
@@ -206,7 +209,7 @@ for k, r in olps_train.results.iteritems():
     r.plot(assets=False, weights=False, ucrp=False, portfolio_label=k, ax=ax[0])
 
 
-# In[ ]:
+# In[12]:
 
 
 def olps_stats(df):
@@ -220,14 +223,14 @@ def olps_stats(df):
     return df
 
 
-# In[ ]:
+# In[15]:
 
 
 olps_stats(olps_train)
-olps_train[metrics].sort('profit', ascending=False)
+olps_train[metrics].sort_values('profit', ascending=False)
 
 
-# In[ ]:
+# In[16]:
 
 
 # Let's add fees of 0.1% per transaction (we pay $1 for every $1000 of stocks bought or sold).
@@ -235,7 +238,7 @@ for k, r in olps_train.results.iteritems():
     r.fee = 0.001
 
 
-# In[ ]:
+# In[17]:
 
 
 # plot with fees
