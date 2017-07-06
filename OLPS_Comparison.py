@@ -31,7 +31,6 @@
 
 # In[ ]:
 
-
 # You will first need to either download or install universal-portfolios from Vinkler
 # one way to do it is uncomment the line below and execute
 #!pip install --upgrade universal-portfolios 
@@ -43,12 +42,10 @@
 
 # In[ ]:
 
-
 #Initialize and set debugging level to `debug` to track progress.
 
 
-# In[4]:
-
+# In[ ]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -57,8 +54,8 @@ import pandas as pd
 from pandas_datareader import data as pdr
 # data reader now seperated to new package. pip install pandas-datareader
 #from pandas.io.data import DataReader
-import fix_yahoo_finance
-fix_yahoo_finance.pdr_override() # <== that's all it takes :-)
+import fix_yahoo_finance as yf
+yf.pdr_override() # <== that's all it takes :-)
 from datetime import datetime
 import six
 import universal as up
@@ -73,11 +70,10 @@ import matplotlib.pyplot as plt
 mpl.rcParams['figure.figsize'] = (16, 10) # increase the size of graphs
 mpl.rcParams['legend.fontsize'] = 12
 mpl.rcParams['lines.linewidth'] = 1
-default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
+default_color_cycle = mpl.rcParams['axes.prop_cycle'] # save this as we will want it back later
 
 
-# In[5]:
-
+# In[ ]:
 
 # note what versions we are on:
 import sys
@@ -92,8 +88,7 @@ print('Numpy: '+np.__version__)
 
 # We want to train on market data from 2005-2012 inclusive (8 years), and test on 2013-2014 inclusive (2 years). But at this point we accept the default parameters for the respective algorithms and we essentially are looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[6]:
-
+# In[ ]:
 
 # load data from Yahoo
 # Be careful if you cange the order or types of ETFs to also change the CRP weight %'s in the swensen_allocation
@@ -117,16 +112,15 @@ train_b = pdr.get_data_yahoo(benchmark, train_start, train_end)['Adj Close']
 test_b  = pdr.get_data_yahoo(benchmark, test_start, test_end)['Adj Close']
 
 
-# In[24]:
-
+# In[ ]:
 
 # plot normalized prices of the train set
-ax1 = (train / train.iloc[0,:]).plot()
-(train_b / train_b.iloc[0,:]).plot(ax=ax1)
+idx = pd.IndexSlice
+ax1 = (train / train.iloc[idx[0,:]]).plot()
+(train_b / train_b.iloc[idx[0,:]]).plot(ax=ax1)
 
 
-# In[25]:
-
+# In[ ]:
 
 # plot normalized prices of the test set
 ax2 = (test / test.iloc[0,:]).plot()
@@ -137,8 +131,7 @@ ax2 = (test / test.iloc[0,:]).plot()
 
 # We want to train on market data from a number of years, and test out of sample for a duration smaller than the train set. To get started we accept the default parameters for the respective algorithms and we essentially are just looking at two independent time periods.  In the future we will want to optimize the paramaters on the train set.
 
-# In[17]:
-
+# In[ ]:
 
 #list all the algos
 olps_algos = [
@@ -159,8 +152,7 @@ algos.RMR()
 ]
 
 
-# In[18]:
-
+# In[ ]:
 
 # put all the algos in a dataframe
 algo_names = [a.__class__.__name__ for a in olps_algos]
@@ -172,33 +164,31 @@ olps_train.algo = olps_algos
 
 # At this point we could train all the algos to find the best parameters for each.
 
-# In[19]:
-
+# In[ ]:
 
 # run all algos - this takes more than a minute
 for name, alg in zip(olps_train.index, olps_train.algo):
     olps_train.loc[name,'results'] = alg.run(train)
 
 
-# In[20]:
-
+# In[ ]:
 
 # Let's make sure the fees are set to 0 at first
 for k, r in olps_train.results.iteritems():
     r.fee = 0.0
 
 
-# In[70]:
-
+# In[ ]:
 
 # we need 14 colors for the plot
-n_lines = 14
-color_idx = np.linspace(0, 1, n_lines)
-mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
+#n_lines = 14
+#color_idx = np.linspace(0, 1, n_lines)
+#mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
+from cycler import cycler
+mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
 
 
-# In[73]:
-
+# In[ ]:
 
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
@@ -209,8 +199,7 @@ for k, r in olps_train.results.iteritems():
     r.plot(assets=False, weights=False, ucrp=False, portfolio_label=k, ax=ax[0])
 
 
-# In[74]:
-
+# In[ ]:
 
 def olps_stats(df):
     for name, r in df.results.iteritems():
@@ -223,23 +212,20 @@ def olps_stats(df):
     return df
 
 
-# In[75]:
-
+# In[ ]:
 
 olps_stats(olps_train)
 olps_train[metrics].sort_values('profit', ascending=False)
 
 
-# In[76]:
-
+# In[ ]:
 
 # Let's add fees of 0.1% per transaction (we pay $1 for every $1000 of stocks bought or sold).
 for k, r in olps_train.results.iteritems():
     r.fee = 0.001
 
 
-# In[77]:
-
+# In[ ]:
 
 # plot with fees
 # get the first result so we can grab the figure axes from the plot
@@ -254,8 +240,7 @@ for k, r in olps_train.results.iteritems():
 
 # ### Notice how Kelly crashes right away and how RMR and OLMAR float to the top after some high volatility.  
 
-# In[79]:
-
+# In[ ]:
 
 olps_stats(olps_train)
 olps_train[metrics].sort_values('profit', ascending=False)
@@ -263,32 +248,28 @@ olps_train[metrics].sort_values('profit', ascending=False)
 
 # # Run on the Test Set
 
-# In[80]:
-
+# In[ ]:
 
 # create the test set dataframe
 olps_test  = pd.DataFrame(index=algo_names, columns=algo_data)
 olps_test.algo  = olps_algos
 
 
-# In[81]:
-
+# In[ ]:
 
 # run all algos
 for name, alg in zip(olps_test.index, olps_test.algo):
     olps_test.ix[name,'results'] = alg.run(test)
 
 
-# In[82]:
-
+# In[ ]:
 
 # Let's make sure the fees are 0 at first
 for k, r in olps_test.results.iteritems():
     r.fee = 0.0
 
 
-# In[83]:
-
+# In[ ]:
 
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
@@ -301,8 +282,7 @@ for k, r in olps_test.results.iteritems():
 
 # ### Kelly went wild and crashed, so let's remove it from the mix
 
-# In[84]:
-
+# In[ ]:
 
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
@@ -315,9 +295,8 @@ for k, r in olps_test.results.iteritems():
 
 # In[ ]:
 
-
 olps_stats(olps_test)
-olps_test[metrics].sort('profit', ascending=False)
+olps_test[metrics].sort_values('profit', ascending=False)
 
 
 # ### Wow, ONS and OLMAR are at the bottom of the list. Remember, we really didn't do any training, but if we had selected ONS or OLMAR at the beginning of 2013 based on past performance, we would not have beat BAH. Hm.
@@ -328,13 +307,11 @@ olps_test[metrics].sort('profit', ascending=False)
 
 # In[ ]:
 
-
 # we need need fewer colors so let's reset the colors_cycle
-mpl.rcParams['axes.color_cycle']= default_color_cycle
+mpl.rcParams['axes.prop_cycle']= default_color_cycle
 
 
 # In[ ]:
-
 
 train_olmar = algos.OLMAR.run_combination(train, window=[3,5,10,15], eps=10)
 train_olmar.plot()
@@ -342,12 +319,10 @@ train_olmar.plot()
 
 # In[ ]:
 
-
 print(train_olmar.summary())
 
 
 # In[ ]:
-
 
 train_olmar = algos.OLMAR.run_combination(train, window=5, eps=[3,5,10,15])
 train_olmar.plot()
@@ -355,14 +330,12 @@ train_olmar.plot()
 
 # In[ ]:
 
-
 print(train_olmar.summary())
 
 
 # ### We find that a window of 5 and eps are 5 are optimal over the train time period, but the default of w=5 and eps=10 were also fine for our purposes.
 
 # In[ ]:
-
 
 # OLMAR vs UCRP
 best_olmar = train_olmar[1]
@@ -374,7 +347,6 @@ olps_train.loc['CRP'].results.plot(ucrp=False, bah=False, weights=False, assets=
 
 # In[ ]:
 
-
 # let's print the stats
 print(best_olmar.summary())
 
@@ -383,14 +355,12 @@ print(best_olmar.summary())
 
 # In[ ]:
 
-
 best_olmar.plot_decomposition(legend=True, logy=True)
 
 
 # ### Let's highlight the magnitude of the highest contributing ETF by removing the log scale and looking at it directly.
 
 # In[ ]:
-
 
 best_olmar.plot_decomposition(legend=True, logy=False)
 
@@ -401,14 +371,12 @@ best_olmar.plot_decomposition(legend=True, logy=False)
 
 # In[ ]:
 
-
 best_olmar.plot(weights=True, assets=True, ucrp=False, logy=True, portfolio_label='OLMAR')
 
 
 # ### VNQ is the big driver of wealth (log scale). Let's test the strategy by removing the most profitable stock and comparing Total Wealth.
 
 # In[ ]:
-
 
 # find the name of the most profitable asset
 most_profitable = best_olmar.equity_decomposed.iloc[-1].argmax()
@@ -423,14 +391,12 @@ result_without.plot(weights=False, assets=False, bah=True, ucrp=True, logy=True,
 
 # In[ ]:
 
-
 result_without.plot_decomposition(legend=True, logy=False)
 
 
 # ### Let's add fees of 0.1% per transaction (we pay \$1 for every \$1000 of stocks bought or sold).
 
 # In[ ]:
-
 
 best_olmar.fee = 0.001
 print(best_olmar.summary())
@@ -443,7 +409,6 @@ best_olmar.plot(weights=False, assets=False, bah=True, ucrp=True, logy=True, por
 
 # In[ ]:
 
-
 test_olmar = algos.OLMAR(window=5, eps=5).run(test)
 #print(train_olmar.summary())
 test_olmar.plot(ucrp=True, bah=True, weights=False, assets=False, portfolio_label='OLMAR')
@@ -452,7 +417,6 @@ test_olmar.plot(ucrp=True, bah=True, weights=False, assets=False, portfolio_labe
 # ### With fees
 
 # In[ ]:
-
 
 test_olmar.fee = 0.001
 print(test_olmar.summary())
@@ -465,7 +429,6 @@ test_olmar.plot(weights=False, assets=False, bah=True, ucrp=True, logy=True, por
 
 # In[ ]:
 
-
 # set train and test time periods
 train_start_2010= datetime(2010,1,1)
 train_end_2010 = datetime(2013,12,31)
@@ -475,7 +438,6 @@ test_end_2010 = datetime(2014,12,31)
 
 # In[ ]:
 
-
 # load data from Yahoo
 train_2010 = DataReader(etfs, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
 test_2010  = DataReader(etfs, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
@@ -483,20 +445,17 @@ test_2010  = DataReader(etfs, 'yahoo', start=test_start_2010,  end=test_end_2010
 
 # In[ ]:
 
-
 # plot normalized prices of these stocks
 (train_2010 / train_2010.iloc[0,:]).plot()
 
 
 # In[ ]:
 
-
 # plot normalized prices of these stocks
 (test_2010 / test_2010.iloc[0,:]).plot()
 
 
 # In[ ]:
-
 
 train_olmar_2010 = algos.OLMAR().run(train_2010)
 train_crp_2010 = algos.CRP(b=swensen_allocation).run(train_2010)
@@ -506,12 +465,10 @@ train_crp_2010.plot(ucrp=False, bah=False, weights=False, assets=False, ax=ax1[0
 
 # In[ ]:
 
-
 print(train_olmar_2010.summary())
 
 
 # In[ ]:
-
 
 train_olmar_2010.plot_decomposition(legend=True, logy=True)
 
@@ -519,7 +476,6 @@ train_olmar_2010.plot_decomposition(legend=True, logy=True)
 # Not bad, with a Sharpe at 1 and no one ETF dominating the portfolio.  Now let's see how it fairs in 2014. 
 
 # In[ ]:
-
 
 test_olmar_2010 = algos.OLMAR().run(test_2010)
 test_crp_2010 = algos.CRP(b=swensen_allocation).run(test_2010)
@@ -529,14 +485,12 @@ test_crp_2010.plot(ucrp=False, bah=False, weights=False, assets=False, ax=ax1[0]
 
 # In[ ]:
 
-
 print(test_olmar_2010.summary())
 
 
 # We just happen to be looking at a different time period and now the Sharpe drops below 0.5 and OLMAR fails to beat BAH.  Not good.
 
 # In[ ]:
-
 
 test_olmar_2010.plot_decomposition(legend=True, logy=True)
 
@@ -547,7 +501,6 @@ test_olmar_2010.plot_decomposition(legend=True, logy=True)
 
 # In[ ]:
 
-
 # load data from Yahoo
 spy_tlt_data = DataReader(['SPY', 'TLT'], 'yahoo', start=datetime(2010,1,1))['Adj Close']
 
@@ -557,25 +510,21 @@ spy_tlt_data = DataReader(['SPY', 'TLT'], 'yahoo', start=datetime(2010,1,1))['Ad
 
 # In[ ]:
 
-
 spy_tlt_olmar_2010 = algos.OLMAR().run(spy_tlt_data)
 spy_tlt_olmar_2010.plot(assets=True, weights=True, ucrp=True, bah=True, portfolio_label='OLMAR')
 
 
 # In[ ]:
 
-
 spy_tlt_olmar_2010.plot_decomposition(legend=True, logy=True)
 
 
 # In[ ]:
 
-
 print(spy_tlt_olmar_2010.summary())
 
 
 # In[ ]:
-
 
 spy_tlt_2010 = algos.CRP(b=[0.7, 0.3]).run(spy_tlt_data)
 
@@ -601,7 +550,6 @@ spy_tlt_2010.plot(assets=False, weights=False, ucrp=False, bah=False, portfolio_
 
 # In[ ]:
 
-
 sectors = ['XLY','XLF','XLK','XLE','XLV','XLI','XLP','XLB','XLU']
 train_sectors = DataReader(sectors, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
 test_sectors  = DataReader(sectors, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
@@ -609,13 +557,11 @@ test_sectors  = DataReader(sectors, 'yahoo', start=test_start_2010,  end=test_en
 
 # In[ ]:
 
-
 # plot normalized prices of these stocks
 (train_sectors / train_sectors.iloc[0,:]).plot()
 
 
 # In[ ]:
-
 
 # plot normalized prices of these stocks
 (test_sectors / test_sectors.iloc[0,:]).plot()
@@ -623,32 +569,27 @@ test_sectors  = DataReader(sectors, 'yahoo', start=test_start_2010,  end=test_en
 
 # In[ ]:
 
-
 train_olmar_sectors = algos.OLMAR().run(train_sectors)
 train_olmar_sectors.plot(assets=True, weights=False, ucrp=True, bah=True, portfolio_label='OLMAR')
 
 
 # In[ ]:
 
-
 print(train_olmar_sectors.summary())
 
 
 # In[ ]:
-
 
 train_olmar_sectors.plot(assets=False, weights=False, ucrp=True, bah=True, portfolio_label='OLMAR')
 
 
 # In[ ]:
 
-
 test_olmar_sectors = algos.OLMAR().run(test_sectors)
 test_olmar_sectors.plot(assets=True, weights=False, ucrp=True, bah=True, portfolio_label='OLMAR')
 
 
 # In[ ]:
-
 
 test_olmar_sectors = algos.OLMAR().run(test_sectors)
 test_olmar_sectors.plot(assets=False, weights=False, ucrp=True, bah=True, portfolio_label='OLMAR')
@@ -657,7 +598,6 @@ test_olmar_sectors.plot(assets=False, weights=False, ucrp=True, bah=True, portfo
 # # All OLPS Algos Market Sectors comparison
 
 # In[ ]:
-
 
 #list all the algos
 olps_algos_sectors = [
@@ -680,13 +620,11 @@ algos.UP()
 
 # In[ ]:
 
-
 olps_sectors_train = pd.DataFrame(index=algo_names, columns=algo_data)
 olps_sectors_train.algo = olps_algos_sectors
 
 
 # In[ ]:
-
 
 # run all algos - this takes more than a minute
 for name, alg in zip(olps_sectors_train.index, olps_sectors_train.algo):
@@ -695,7 +633,6 @@ for name, alg in zip(olps_sectors_train.index, olps_sectors_train.algo):
 
 # In[ ]:
 
-
 # we need 14 colors for the plot
 n_lines = 14
 color_idx = np.linspace(0, 1, n_lines)
@@ -703,7 +640,6 @@ mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
 
 
 # In[ ]:
-
 
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
@@ -717,7 +653,6 @@ for k, r in olps_df.results.iteritems():
 
 # In[ ]:
 
-
 # Kelly went wild, so let's remove it
 # get the first result so we can grab the figure axes from the plot
 olps_df = olps_sectors_train
@@ -730,13 +665,11 @@ for k, r in olps_df.results.iteritems():
 
 # In[ ]:
 
-
 olps_stats(olps_sectors_train)
 olps_sectors_train[metrics].sort('profit', ascending=False)
 
 
 # In[ ]:
-
 
 # create the test set dataframe
 olps_sectors_test  = pd.DataFrame(index=algo_names, columns=algo_data)
@@ -745,14 +678,12 @@ olps_sectors_test.algo  = olps_algos_sectors
 
 # In[ ]:
 
-
 # run all algos
 for name, alg in zip(olps_sectors_test.index, olps_sectors_test.algo):
     olps_sectors_test.ix[name,'results'] = alg.run(test_sectors)
 
 
 # In[ ]:
-
 
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
@@ -766,7 +697,6 @@ for k, r in olps_df.results.iteritems():
 
 # In[ ]:
 
-
 # drop Kelly !
 # get the first result so we can grab the figure axes from the plot
 olps_df = olps_sectors_test
@@ -778,7 +708,6 @@ for k, r in olps_df.results.iteritems():
 
 
 # In[ ]:
-
 
 olps_stats(olps_sectors_test)
 olps_sectors_test[metrics].sort('profit', ascending=False)
@@ -796,7 +725,6 @@ olps_sectors_test[metrics].sort('profit', ascending=False)
 # RMR and OLMAR do add value to a Lazy Portfolio if tested or run over a long enough period of time.  This gives RMR and OLMAR a chance to grab onto a period of volatility.  But in an up market (2013-1014) you want to Follow-the-Leader, not Follow-the-Looser.  Of the other algo's, CRP or BAH are decent, and maybe it's worth understanding what ONS is doing.
 
 # In[ ]:
-
 
 
 
