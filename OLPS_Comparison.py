@@ -70,10 +70,89 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
  
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+
+# we need 14 colors for the plot
+#n_lines = 14
+#color_idx = np.linspace(0, 1, n_lines)
+#mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
+#from cycler import cycler
+#mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
+# Generate random colormap
+def rand_cmap(nlabels, type='bright', first_color_black=True, last_color_black=False, verbose=True):
+    """
+    Creates a random colormap to be used together with matplotlib. Useful for segmentation tasks
+    :param nlabels: Number of labels (size of colormap)
+    :param type: 'bright' for strong colors, 'soft' for pastel colors
+    :param first_color_black: Option to use first color as black, True or False
+    :param last_color_black: Option to use last color as black, True or False
+    :param verbose: Prints the number of labels and shows the colormap. True or False
+    :return: colormap for matplotlib
+    """
+    from matplotlib.colors import LinearSegmentedColormap
+    import colorsys
+    import numpy as np
+
+    if type not in ('bright', 'soft'):
+        print ('Please choose "bright" or "soft" for type')
+        return
+
+    if verbose:
+        print('Number of labels: ' + str(nlabels))
+
+    # Generate color map for bright colors, based on hsv
+    if type == 'bright':
+        randHSVcolors = [(np.random.uniform(low=0.0, high=1),
+                          np.random.uniform(low=0.2, high=1),
+                          np.random.uniform(low=0.9, high=1)) for i in range(nlabels)]
+
+        # Convert HSV list to RGB
+        randRGBcolors = []
+        for HSVcolor in randHSVcolors:
+            randRGBcolors.append(colorsys.hsv_to_rgb(HSVcolor[0], HSVcolor[1], HSVcolor[2]))
+
+        if first_color_black:
+            randRGBcolors[0] = [0, 0, 0]
+
+        if last_color_black:
+            randRGBcolors[-1] = [0, 0, 0]
+
+        random_colormap = LinearSegmentedColormap.from_list('new_map', randRGBcolors, N=nlabels)
+
+    # Generate soft pastel colors, by limiting the RGB spectrum
+    if type == 'soft':
+        low = 0.6
+        high = 0.95
+        randRGBcolors = [(np.random.uniform(low=low, high=high),
+                          np.random.uniform(low=low, high=high),
+                          np.random.uniform(low=low, high=high)) for i in range(nlabels)]
+
+        if first_color_black:
+            randRGBcolors[0] = [0, 0, 0]
+
+        if last_color_black:
+            randRGBcolors[-1] = [0, 0, 0]
+        random_colormap = LinearSegmentedColormap.from_list('new_map', randRGBcolors, N=nlabels)
+
+    # Display colorbar
+    if verbose:
+        from matplotlib import colors, colorbar
+        from matplotlib import pyplot as plt
+        fig, ax = plt.subplots(1, 1, figsize=(15, 0.5))
+
+        bounds = np.linspace(0, nlabels, nlabels + 1)
+        norm = colors.BoundaryNorm(bounds, nlabels)
+
+        cb = colorbar.ColorbarBase(ax, cmap=random_colormap, norm=norm, spacing='proportional', ticks=None,
+                                   boundaries=bounds, format='%1i', orientation=u'horizontal')
+
+    return random_colormap
+
 mpl.rcParams['figure.figsize'] = (16, 10) # increase the size of graphs
 mpl.rcParams['legend.fontsize'] = 12
 mpl.rcParams['lines.linewidth'] = 1
-default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
+#default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
+new_cmap = rand_cmap(100, type='bright', first_color_black=True, last_color_black=False, verbose=True)
+default_color_cycle = new_cmap
 
 
 # In[ ]:
@@ -162,8 +241,8 @@ algos.Kelly(),
 algos.OLMAR(),
 algos.ONS(),
 algos.PAMR(),
-algos.RMR()
-#algos.UP()
+algos.RMR(),
+algos.UP()
 ]
 
 
@@ -199,23 +278,24 @@ for k, r in olps_train.results.iteritems():
 # In[ ]:
 
 
-# we need 14 colors for the plot
+import cycler
 n_lines = 14
 color_idx = np.linspace(0, 1, n_lines)
-mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
-#from cycler import cycler
-#mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
-
-
-# In[ ]:
-
-
+mpl.rcParams['axes.prop_cycle']=cycler.cycler(color=[plt.cm.rainbow(i) for i in color_idx])
 # plot as if we had no fees
 # get the first result so we can grab the figure axes from the plot
+colors=['#12efff','#eee111','#eee00f','#e00fff','#123456','#abc222','#000000','#123fff','#1eff1f','#2edf4f','#2eaf9f','#22222f',
+        '#eeeff1','#eee112','#00ef00','#aa0000','#0000aa','#000999','#32efff','#23ef68','#2e3f56','#7eef1f','#eeef11']
+
+#C=1
+#new_cmap = rand_cmap(14, type='bright', first_color_black=True, last_color_black=False, verbose=True)
+#print(new_cmap)
 ax = olps_train.results[0].plot(assets=False, weights=False, ucrp=True, portfolio_label=olps_train.index[0])
 for k, r in olps_train.results.iteritems():
     if k == olps_train.results.keys()[0]: # skip the first item because we have it already
         continue
+    #C=(C+1) % len(colors)
+    #print(new_cmap(C))
     r.plot(assets=False, weights=False, ucrp=False, portfolio_label=k, ax=ax[0])
 
 
