@@ -67,13 +67,13 @@ from universal import algos
 import logging
 # we would like to see algos progress
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
-
+ 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 mpl.rcParams['figure.figsize'] = (16, 10) # increase the size of graphs
 mpl.rcParams['legend.fontsize'] = 12
 mpl.rcParams['lines.linewidth'] = 1
-default_color_cycle = mpl.rcParams['axes.prop_cycle'] # save this as we will want it back later
+default_color_cycle = mpl.rcParams['axes.color_cycle'] # save this as we will want it back later
 
 
 # In[ ]:
@@ -97,14 +97,13 @@ print('Numpy: '+np.__version__)
 
 # load data from Yahoo
 # Be careful if you cange the order or types of ETFs to also change the CRP weight %'s in the swensen_allocation
-#etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
-#etfs = ['TLT','VNQ']
-etfs = ['SCHX','VOO','FNDX','PRF','SCHA','VB','FNDA','PRFZ','SCHF','VEA',
-       'FNDF','PXF','SCHC','VSS','FNDC','PDN','SCHE','IEMG','FNDE',
-       'PXH','SCHH','VNQ','VNQI','IFGL','SCHD','VYM','DWX','IQDF','MLPA',
-       'ZMLP','SCHR','VGIT','ITR','VCIT','VMBS','MBG','SCHP','STIP','SHYG',
-       'JNK','BNDX','IGOV','EMLC','VWOB','PSK','PFF','BKLN','VTEB','TFI',
-       'PWZ','CMF','IAU','GLTR']
+etfs = ['VTI', 'EFA', 'EEM', 'TLT', 'TIP', 'VNQ']
+#etfs = ['SCHX','VOO','FNDX','PRF','SCHA','VB','FNDA','PRFZ','SCHF','VEA',
+#       'FNDF','PXF','SCHC','VSS','FNDC','PDN','SCHE','IEMG','FNDE',
+#       'PXH','SCHH','VNQ','VNQI','IFGL','SCHD','VYM','DWX','IQDF','MLPA',
+#       'ZMLP','SCHR','VGIT','ITR','VCIT','VMBS','MBG','SCHP','STIP','SHYG',
+#       'JNK','BNDX','IGOV','EMLC','VWOB','PSK','PFF','BKLN','VTEB','TFI',
+#       'PWZ','CMF','IAU','GLTR']
 # Swensen allocation from http://www.bogleheads.org/wiki/Lazy_portfolios#David_Swensen.27s_lazy_portfolio
 # as later updated here : https://www.yalealumnimagazine.com/articles/2398/david-swensen-s-guide-to-sleeping-soundly 
 swensen_allocation = [0.3, 0.15, 0.1, 0.15, 0.15, 0.15]  
@@ -127,17 +126,19 @@ test_b  = pdr.get_data_yahoo(benchmark, test_start, test_end)['Adj Close']
 
 
 # plot normalized prices of the train set
-idx = pd.IndexSlice
-ax1 = (train / train.iloc[idx[0,:]]).plot()
-(train_b / train_b.iloc[idx[0,:]]).plot(ax=ax1)
+#idx = pd.IndexSlice
+#ax1 = (train / train.iloc[idx[0,:]]).plot()
+#(train_b / train_b.iloc[idx[0,:]]).plot(ax=ax1)
+(train / train.iloc[0,:]).plot()
 
 
 # In[ ]:
 
 
 # plot normalized prices of the test set
-ax2 = (test / test.iloc[0,:]).plot()
-(test_b / test_b.iloc[0,:]).plot(ax=ax2)
+#ax2 = (test / test.iloc[0,:]).plot()
+#(test_b / test_b.iloc[0,:]).plot(ax=ax2)
+(test / test.iloc[0,:]).plot()
 
 
 # # Comparing the Algorithms
@@ -199,11 +200,11 @@ for k, r in olps_train.results.iteritems():
 
 
 # we need 14 colors for the plot
-#n_lines = 14
-#color_idx = np.linspace(0, 1, n_lines)
-#mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
-from cycler import cycler
-mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
+n_lines = 14
+color_idx = np.linspace(0, 1, n_lines)
+mpl.rcParams['axes.color_cycle']=[plt.cm.rainbow(i) for i in color_idx]
+#from cycler import cycler
+#mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
 
 
 # In[ ]:
@@ -486,8 +487,10 @@ test_end_2010 = datetime(2014,12,31)
 
 
 # load data from Yahoo
-train_2010 = DataReader(etfs, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
-test_2010  = DataReader(etfs, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
+#train_2010 = DataReader(etfs, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
+#test_2010  = DataReader(etfs, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
+train_2010 = pdr.get_data_yahoo(etfs, train_start_2010, train_end_2010)['Adj Close']
+test_2010  = pdr.get_data_yahoo(etfs, train_start_2010, train_end_2010)['Adj Close']
 
 
 # In[ ]:
@@ -558,10 +561,50 @@ test_olmar_2010.plot_decomposition(legend=True, logy=True)
 
 
 # load data from Yahoo
-spy_tlt_data = DataReader(['SPY', 'TLT'], 'yahoo', start=datetime(2010,1,1))['Adj Close']
+#spy_tlt_data = DataReader(['SPY', 'TLT'], 'yahoo', start=datetime(2010,1,1))['Adj Close']
+spy_tlt_data = pdr.get_data_yahoo(['SPY', 'TLT'], datetime(2010,1,1))['Adj Close']
 
 # plot normalized prices of these stocks
 (spy_tlt_data / spy_tlt_data.iloc[0,:]).plot()
+
+
+# In[ ]:
+
+
+import plotly.plotly as py
+import plotly.graph_objs as go
+
+import pandas as pd
+
+TLT = pd.read_csv("stock_datas/TLT.csv")
+SPY = pd.read_csv("stock_datas/SPY.csv")
+df = pd.concat([TLT,SPY.rename(columns={'date':'datex'})], ignore_index=True)
+
+trace_spy = go.Scatter(
+                x=df.Date,
+                y=df['SPY.Adjusted'],
+                name = "SPY Adjusted",
+                line = dict(color = '#17BECF'),
+                opacity = 0.8)
+
+trace_tlt = go.Scatter(
+                x=df.Date,
+                y=df['TLT.Adjusted'],
+                name = "TLT Adjusted",
+                line = dict(color = '#7F7F7F'),
+                opacity = 0.8)
+
+data = [trace_spy,trace_tlt]
+
+layout = dict(
+    title = "SPY / TLT portfolio comparison",
+    xaxis = dict(
+        range = ['2010-01-01','2017-07-17'])
+)
+
+fig = dict(data=data, layout=layout)
+
+py.iplot(fig)
 
 
 # In[ ]:
@@ -612,8 +655,10 @@ spy_tlt_2010.plot(assets=False, weights=False, ucrp=False, bah=False, portfolio_
 
 
 sectors = ['XLY','XLF','XLK','XLE','XLV','XLI','XLP','XLB','XLU']
-train_sectors = DataReader(sectors, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
-test_sectors  = DataReader(sectors, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
+#train_sectors = DataReader(sectors, 'yahoo', start=train_start_2010, end=train_end_2010)['Adj Close']
+#test_sectors  = DataReader(sectors, 'yahoo', start=test_start_2010,  end=test_end_2010)['Adj Close']
+train_sectors = pdr.get_data_yahoo(sectors, train_start_2010, train_end_2010)['Adj Close']
+test_sectors = pdr.get_data_yahoo(sectors, test_start_2010, test_end_2010)['Adj Close']
 
 
 # In[ ]:
